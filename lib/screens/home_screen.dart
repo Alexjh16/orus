@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '¡Hola Mundo! ',
+                          '¡Hola Mundo!',
                           style: GoogleFonts.inter(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,

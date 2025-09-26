@@ -18,7 +18,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify that the app loads with the home screen
-    expect(find.text('¡Hola! Mundo'), findsOneWidget);
+    expect(find.text('¡Hola Mundo!'), findsOneWidget);
     expect(find.text('Bienvenido a Orus'), findsOneWidget);
   });
 }
