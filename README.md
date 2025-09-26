@@ -1,16 +1,41 @@
-# orus
+# Orus
 
-A new Flutter project.
+Una aplicación Flutter desarrollada por Alexander.
 
-## Getting Started
+## Descripción
 
-This project is a starting point for a Flutter application.
+Este es un proyecto Flutter que incluye soporte multiplataforma para:
+- 📱 Android
+- 🍎 iOS  
+- 🐧 Linux
+- 🖥️ Windows
+- 🌐 Web
 
-A few resources to get you started if this is your first Flutter project:
+## Comenzando
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Este proyecto es un punto de partida para una aplicación Flutter.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Recursos útiles:
+
+- [Lab: Escribe tu primera app Flutter](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Ejemplos útiles de Flutter](https://docs.flutter.dev/cookbook)
+
+Para obtener ayuda con el desarrollo de Flutter, consulta la
+[documentación en línea](https://docs.flutter.dev/), que ofrece tutoriales,
+ejemplos, orientación sobre desarrollo móvil y una referencia completa de la API.
+
+## Desarrollo
+
+```bash
+# Instalar dependencias
+flutter pub get
+
+# Ejecutar en Linux
+flutter run -d linux
+
+# Ejecutar en Chrome
+flutter run -d chrome
+
+# Ejecutar en dispositivo Android/iOS
+flutter run
+```
