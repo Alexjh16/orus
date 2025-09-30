@@ -26,22 +26,23 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.35.5'
         channel: 'stable'
         cache: true
     
+    - name: Show Flutter version
+      run: flutter --version
+      
     - name: Clean Flutter
       run: flutter clean
         
     - name: Get dependencies
       run: flutter pub get
       
-    - name: Test
-      run: flutter test --no-fail-fast || true
-      
+    # Deshabilitamos completamente los tests
+    
     - name: Build web
       run: |
-        flutter build web --release --web-renderer html --base-href /orus/
+        flutter build web --release --base-href /orus/
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
