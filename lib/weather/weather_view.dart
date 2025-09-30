@@ -14,7 +14,10 @@ class WeatherView extends StatefulWidget {
 
 class _WeatherViewState extends State<WeatherView>
     with SingleTickerProviderStateMixin {
-  final WeatherService _weatherService = WeatherService();
+  final WeatherService _weatherService = Weat                                        child: _buildHighlightedText(
+                                          city, 
+                                          _cityController.text,
+                                        ),ice();
   final TextEditingController _cityController = TextEditingController();
   WeatherModel? _currentWeather;
   List<WeatherModel>? _forecast;
@@ -22,6 +25,53 @@ class _WeatherViewState extends State<WeatherView>
   String? _error;
   late AnimationController _animationController;
   late Animation<double> _animation;
+
+  // Variables para el autocompletado
+  List<String> _suggestedCities = [];
+  final List<String> _popularCities = [
+    'Bogotá',
+    'Medellín',
+    'Cali',
+    'Barranquilla',
+    'Cartagena',
+    'Santa Marta',
+    'Bucaramanga',
+    'Pereira',
+    'Manizales',
+    'Armenia',
+    'Villavicencio',
+    'Pasto',
+    'Neiva',
+    'Popayán',
+    'Tunja',
+    'Valledupar',
+    'Montería',
+    'Sincelejo',
+    'Ciudad de México',
+    'Guadalajara',
+    'Monterrey',
+    'Cancún',
+    'Madrid',
+    'Barcelona',
+    'París',
+    'Londres',
+    'Roma',
+    'Berlín',
+    'Tokio',
+    'Nueva York',
+    'Miami',
+    'Los Ángeles',
+    'Buenos Aires',
+    'Santiago',
+    'Lima',
+    'Quito',
+    'Río de Janeiro',
+    'São Paulo',
+    'Caracas',
+    'La Habana',
+    'Toronto'
+  ];
+  bool _showSuggestions = false;
 
   @override
   void initState() {
@@ -34,15 +84,51 @@ class _WeatherViewState extends State<WeatherView>
       parent: _animationController,
       curve: Curves.easeInOut,
     );
+
+    // Configurar listener para autocompletado
+    _cityController.addListener(_onSearchChanged);
+
     // Iniciar con un valor predeterminado
     _getWeatherForCity("Cartagena");
   }
 
   @override
   void dispose() {
+    _cityController.removeListener(_onSearchChanged);
     _cityController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Método para filtrar sugerencias cuando cambia el texto
+  void _onSearchChanged() {
+    final query = _cityController.text.toLowerCase();
+
+    if (query.isEmpty) {
+      setState(() {
+        _suggestedCities = [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+
+    final suggestions = _popularCities
+        .where((city) => city.toLowerCase().contains(query))
+        .toList();
+
+    setState(() {
+      _suggestedCities = suggestions;
+      _showSuggestions = suggestions.isNotEmpty;
+    });
+  }
+
+  // Método para seleccionar una ciudad de las sugerencias
+  void _selectCity(String city) {
+    _cityController.text = city;
+    setState(() {
+      _showSuggestions = false;
+    });
+    _getWeatherForCity(city);
   }
 
   Future<void> _getWeatherForCity(String city) async {
@@ -151,29 +237,45 @@ class _WeatherViewState extends State<WeatherView>
                   // Aplicar cambios de modo de datos
                   _weatherService.toggleDataMode(useSimulatedData);
 
-                  // Verificar API key si se está usando datos reales
+                  // Primero, actualizar el clima con el nuevo modo (esto es síncrono)
+                  final String cityToSearch = _cityController.text.isNotEmpty
+                      ? _cityController.text
+                      : 'Cartagena';
+
+                  // Luego, si estamos usando datos reales, verificar la API key
                   if (!useSimulatedData) {
-                    final result =
-                        await _weatherService.checkApiKeyAndSetMode();
+                    // Iniciar la actualización del clima primero
+                    _getWeatherForCity(cityToSearch);
 
-                    // Mostrar resultado de la verificación
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(result['message']),
-                          backgroundColor:
-                              result['isValid'] ? Colors.green : Colors.orange,
-                          duration: const Duration(seconds: 5),
-                        ),
-                      );
+                    // Luego, verificar la API key (esto es asíncrono)
+                    try {
+                      final result =
+                          await _weatherService.checkApiKeyAndSetMode();
+
+                      // Solo mostrar el SnackBar si el widget aún está montado
+                      if (mounted) {
+                        // Usar Future.microtask para asegurar que esto se ejecute en un momento seguro
+                        Future.microtask(() {
+                          // Verificar nuevamente si el widget sigue montado
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result['message']),
+                                backgroundColor: result['isValid']
+                                    ? Colors.green
+                                    : Colors.orange,
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
+                        });
+                      }
+                    } catch (e) {
+                      print('Error al verificar API key: $e');
                     }
-                  }
-
-                  // Actualizar el clima con el nuevo modo
-                  if (_cityController.text.isNotEmpty) {
-                    _getWeatherForCity(_cityController.text);
                   } else {
-                    _getWeatherForCity('Cartagena');
+                    // Si usamos datos simulados, simplemente actualizar el clima
+                    _getWeatherForCity(cityToSearch);
                   }
                 },
                 child: Text(
@@ -193,136 +295,209 @@ class _WeatherViewState extends State<WeatherView>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF4052B6),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              // Título con estilo y botón de configuración
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Clima',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.settings,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    onPressed: _showApiKeySettingsDialog,
-                    tooltip: 'Configurar API',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Consulta el clima en cualquier ciudad',
-                style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 16,
-                ),
-              ),
-              // Indicador de modo simulado
-              if (_weatherService.isUsingSimulatedData)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
+    return GestureDetector(
+      onTap: () {
+        // Cerrar el teclado y las sugerencias al tocar fuera
+        FocusScope.of(context).unfocus();
+        setState(() {
+          _showSuggestions = false;
+        });
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF4052B6),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                // Título con estilo y botón de configuración
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Clima',
+                      style: GoogleFonts.inter(
                         color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Usando datos simulados',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 24),
-
-              // Buscador con estilo moderno
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.settings,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      onPressed: _showApiKeySettingsDialog,
+                      tooltip: 'Configurar API',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Consulta el clima en cualquier ciudad',
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 16,
+                  ),
+                ),
+                // Indicador de modo simulado
+                if (_weatherService.isUsingSimulatedData)
+                  Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _cityController,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Buscar ciudad...',
-                              hintStyle: GoogleFonts.inter(
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            onSubmitted: (value) => _getWeatherForCity(value),
-                          ),
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.white,
+                          size: 16,
                         ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.search_rounded,
+                        const SizedBox(width: 8),
+                        Text(
+                          'Usando datos simulados',
+                          style: GoogleFonts.inter(
                             color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
-                          onPressed: () =>
-                              _getWeatherForCity(_cityController.text),
                         ),
                       ],
                     ),
                   ),
+                const SizedBox(height: 24),
+
+                // Buscador con estilo moderno y autocompletado
+                Stack(
+                  children: [
+                    // Campo de búsqueda
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1.5,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _cityController,
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Buscar ciudad...',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                  ),
+                                  onSubmitted: (value) =>
+                                      _getWeatherForCity(value),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () =>
+                                    _getWeatherForCity(_cityController.text),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Lista de sugerencias
+                    if (_showSuggestions && _suggestedCities.isNotEmpty)
+                      Positioned(
+                        top: 60,
+                        left: 0,
+                        right: 0,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              constraints: const BoxConstraints(maxHeight: 200),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  children: _suggestedCities.map((city) {
+                                    return Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () => _selectCity(city),
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 12,
+                                          ),
+                                          child: Text(
+                                            city,
+                                            style: GoogleFonts.inter(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Contenido principal
-              Expanded(
-                child: _buildMainContent(),
-              ),
-            ],
+                // Contenido principal
+                Expanded(
+                  child: _buildMainContent(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

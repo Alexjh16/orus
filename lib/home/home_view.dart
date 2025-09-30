@@ -149,30 +149,32 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                                     ],
                                   ),
                                 )
-                              : ElevatedButton(
-                                  onPressed: () {
-                                    // Abrir el drawer para mostrar las opciones de navegación
-                                    Scaffold.of(context).openDrawer();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF4052B6),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
+                              : Builder(builder: (BuildContext innerContext) {
+                                  return ElevatedButton(
+                                    onPressed: () {
+                                      // Abrir el drawer usando un contexto válido
+                                      Scaffold.of(innerContext).openDrawer();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xFF4052B6),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
+                                    child: Text(
+                                      'Comenzar',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  child: Text(
-                                    'Comenzar',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                  );
+                                }),
                         ],
                       ),
                     ),
