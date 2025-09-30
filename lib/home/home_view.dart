@@ -9,17 +9,23 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
+  late PageController _pageController;
+  int _currentPage = 0;
+  final int _numPages = 3;
+
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -27,12 +33,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       parent: _controller,
       curve: Curves.easeInOut,
     ));
-    
+
     _controller.forward();
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -40,166 +47,244 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F11),
+      backgroundColor:
+          const Color(0xFF4052B6), // Color azul similar al de la imagen
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 40),
-                
-                // Logo/Título principal
-                Text(
-                  '¡Hola Mundo!',
-                  style: GoogleFonts.inter(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                
-                Text(
-                  'Bienvenido a Orus',
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w300,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 50),
-                
-                // Descripción de la aplicación
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.blue.withOpacity(0.1),
-                        Colors.purple.withOpacity(0.1),
-                      ],
+          child: Stack(
+            children: [
+              PageView(
+                controller: _pageController,
+                onPageChanged: (int page) {
+                  setState(() {
+                    _currentPage = page;
+                  });
+                },
+                children: _buildPages(),
+              ),
+              Positioned(
+                bottom: 30,
+                left: 0,
+                right: 0,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _buildPageIndicator(),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
+                    const SizedBox(height: 40),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Botón Previous
+                          TextButton(
+                            onPressed: _currentPage != 0
+                                ? () {
+                                    // Ir a la página anterior
+                                    _pageController.previousPage(
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      curve: Curves.ease,
+                                    );
+                                  }
+                                : null, // Deshabilitar el botón en la primera página
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _currentPage != 0
+                                    ? const Icon(Icons.arrow_back,
+                                        color: Colors.white)
+                                    : Container(),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Previous',
+                                  style: GoogleFonts.inter(
+                                    color: _currentPage != 0
+                                        ? Colors.white
+                                        : Colors.white.withOpacity(0.3),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Botón Next
+                          _currentPage != _numPages - 1
+                              ? ElevatedButton(
+                                  onPressed: () {
+                                    _pageController.nextPage(
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      curve: Curves.ease,
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF4052B6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Next',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.arrow_forward),
+                                    ],
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  onPressed: () {
+                                    // Abrir el drawer para mostrar las opciones de navegación
+                                    Scaffold.of(context).openDrawer();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF4052B6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Comenzar',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.apps,
-                        size: 48,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Tu App Multifuncional',
-                        style: GoogleFonts.inter(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Orus es una aplicación completa que combina herramientas útiles en una sola plataforma. Desarrollada con Flutter para ofrecerte la mejor experiencia.',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          color: Colors.white70,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                
-                const SizedBox(height: 40),
-                
-                // Funcionalidades disponibles
-                Text(
-                  'Funcionalidades Disponibles',
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 30),
-                
-                // Tarjetas de funcionalidades
-                _buildFeatureCard(
-                  icon: Icons.calculate,
-                  title: 'Calculadora',
-                  description: 'Realiza operaciones matemáticas básicas, potencias y raíces con una interfaz intuitiva.',
-                  color: Colors.green,
-                  onTap: () => _navigateToCalculator(context),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                _buildFeatureCard(
-                  icon: Icons.cloud,
-                  title: 'Clima',
-                  description: 'Consulta el pronóstico del tiempo y mantente informado sobre las condiciones climáticas.',
-                  color: Colors.blue,
-                  onTap: () => _navigateToWeather(context),
-                ),
-                
-                const SizedBox(height: 50),
-                
-                // Footer
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '¡Explora todas las funciones!',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Usa el menú de navegación para acceder a cada sección',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white60,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 30),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  List<Widget> _buildPages() {
+    return [
+      _buildPage(
+        title: 'Rápido, Fluido y Seguro',
+        description: 'Disfruta lo mejor del mundo en la palma de tus manos.',
+        icon: Icons.speed_outlined,
+      ),
+      _buildPage(
+        title: 'Calculadora Inteligente',
+        description:
+            'Realiza cálculos matemáticos con nuestra herramienta fácil de usar.',
+        icon: Icons.calculate_outlined,
+      ),
+      _buildPage(
+        title: 'Clima en Tiempo Real',
+        description: 'Mantente informado sobre el clima de tu ciudad favorita.',
+        icon: Icons.cloud_outlined,
+      ),
+    ];
+  }
+
+  List<Widget> _buildPageIndicator() {
+    List<Widget> indicators = [];
+    for (int i = 0; i < _numPages; i++) {
+      indicators.add(
+        Container(
+          width: 10.0,
+          height: 10.0,
+          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: i == _currentPage
+                ? Colors.white
+                : Colors.white.withOpacity(0.5),
+          ),
+        ),
+      );
+    }
+    return indicators;
+  }
+
+  Widget _buildPage({
+    required String title,
+    required String description,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Icono principal
+          Container(
+            width: 180,
+            height: 180,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 100,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+
+          // Título
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+
+          // Descripción
+          Text(
+            description,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w300,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Este método ya no se usa en el nuevo diseño, pero lo mantenemos por compatibilidad
+  // con otras partes de la aplicación si fuera necesario
   Widget _buildFeatureCard({
     required IconData icon,
     required String title,
@@ -207,81 +292,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.1),
-              color.withOpacity(0.05),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: color,
-              ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.white70,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: color,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _navigateToCalculator(BuildContext context) {
-    Navigator.pushNamed(context, '/calculator');
-  }
-
-  void _navigateToWeather(BuildContext context) {
-    Navigator.pushNamed(context, '/weather');
+    return Container(); // Devolvemos un widget vacío
   }
 }

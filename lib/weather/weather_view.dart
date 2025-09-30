@@ -150,7 +150,7 @@ class _WeatherViewState extends State<WeatherView> {
   }
 
   Widget _buildLoadingIndicator() {
-    return Container(
+    return SizedBox(
       height: 200,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -561,7 +561,7 @@ class _WeatherViewState extends State<WeatherView> {
         ),
         const SizedBox(height: 16),
         
-        Container(
+        SizedBox(
           height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,

@@ -69,13 +69,13 @@ class _MainScreenState extends State<MainScreen> {
             Container(
               height: 200,
               width: double.infinity,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF6366F1),
-                    const Color(0xFF8B5CF6),
+                    Color(0xFF6366F1),
+                    Color(0xFF8B5CF6),
                   ],
                 ),
               ),
