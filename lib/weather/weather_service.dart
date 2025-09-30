@@ -29,10 +29,14 @@ class WeatherService {
     }
 
     try {
+      // Limpiar y normalizar el nombre de la ciudad para la API
+      final cleanCity = _normalizeCity(city);
+      print('Consultando API para ciudad: $cleanCity');
+
       // Intentar usar la API real
       final response = await http.get(
         Uri.parse(
-            '$baseUrl/weather?q=$city&appid=$apiKey&units=metric&lang=es'),
+            '$baseUrl/weather?q=$cleanCity&appid=$apiKey&units=metric&lang=es'),
         headers: {'User-Agent': 'OrusWeatherApp/1.0'},
       ).timeout(
           const Duration(seconds: 10)); // Aumentamos el timeout a 10 segundos
@@ -53,6 +57,12 @@ class WeatherService {
 
         // Si la ciudad no existe
         if (response.statusCode == 404) {
+          // Probar con variaciones del nombre de la ciudad
+          final alternativeName = _getAlternativeName(city);
+          if (alternativeName != cleanCity) {
+            print('Probando con nombre alternativo: $alternativeName');
+            return getCurrentWeather(alternativeName);
+          }
           throw Exception('Ciudad no encontrada. Intenta con otra ciudad.');
         }
 
@@ -62,6 +72,9 @@ class WeatherService {
     } catch (e) {
       // Si hay error de conexión o cualquier otro error
       print('Error al obtener clima: $e');
+      if (e.toString().contains('Ciudad no encontrada')) {
+        throw e; // Re-lanzar el error para que se muestre correctamente al usuario
+      }
       return _getSimulatedWeather(city);
     }
   }
@@ -73,9 +86,13 @@ class WeatherService {
     }
 
     try {
+      // Limpiar y normalizar el nombre de la ciudad para la API
+      final cleanCity = _normalizeCity(city);
+      print('Consultando API de pronóstico para ciudad: $cleanCity');
+
       final response = await http.get(
         Uri.parse(
-            '$baseUrl/forecast?q=$city&appid=$apiKey&units=metric&lang=es'),
+            '$baseUrl/forecast?q=$cleanCity&appid=$apiKey&units=metric&lang=es'),
         headers: {'User-Agent': 'OrusWeatherApp/1.0'},
       ).timeout(const Duration(seconds: 10));
 
@@ -102,6 +119,13 @@ class WeatherService {
 
         // Si la ciudad no existe
         if (response.statusCode == 404) {
+          // Probar con variaciones del nombre de la ciudad
+          final alternativeName = _getAlternativeName(city);
+          if (alternativeName != cleanCity) {
+            print(
+                'Probando con nombre alternativo para pronóstico: $alternativeName');
+            return getForecast(alternativeName);
+          }
           throw Exception('Ciudad no encontrada. Intenta con otra ciudad.');
         }
 
@@ -109,6 +133,9 @@ class WeatherService {
       }
     } catch (e) {
       print('Error al obtener pronóstico: $e');
+      if (e.toString().contains('Ciudad no encontrada')) {
+        throw e; // Re-lanzar el error para que se muestre correctamente al usuario
+      }
       return _getSimulatedForecast(city);
     }
   }
@@ -365,11 +392,84 @@ class WeatherService {
     return forecast;
   }
 
+  // Normalizar nombre de ciudad para la API (sin tildes, mayusculas, etc)
+  String _normalizeCity(String city) {
+    // Eliminar tildes y caracteres especiales
+    final withoutAccents = city
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll('ü', 'u');
+
+    // Limpiar otros caracteres y espacios extras
+    return withoutAccents.trim();
+  }
+
+  // Obtener nombre alternativo para ciudades que pueden tener variantes
+  String _getAlternativeName(String city) {
+    final lowerCity = city.toLowerCase();
+
+    // Mapa de nombres alternativos conocidos
+    final Map<String, String> alternatives = {
+      'bogotá': 'Bogota',
+      'bogota': 'Bogota,co',
+      'medellín': 'Medellin',
+      'medellin': 'Medellin,co',
+      'barranquilla': 'Barranquilla,co',
+      'cali': 'Cali,co',
+      'cartagena': 'Cartagena,co',
+      'santa marta': 'Santa Marta,co',
+      'ciudad de méxico': 'Mexico City',
+      'ciudad de mexico': 'Mexico City',
+      'madrid': 'Madrid,es',
+      'barcelona': 'Barcelona,es',
+      'parís': 'Paris',
+      'paris': 'Paris,fr',
+      'roma': 'Rome',
+      'berlín': 'Berlin',
+      'berlin': 'Berlin,de',
+      'nueva york': 'New York',
+      'new york': 'New York,us',
+      'tokio': 'Tokyo',
+      'londres': 'London',
+      'miami': 'Miami,us',
+    };
+
+    // Buscar en el mapa de alternativas
+    for (final entry in alternatives.entries) {
+      if (lowerCity.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    // Si no se encuentra alternativa, devolver la ciudad original
+    return city;
+  }
+
   String _cleanCityName(String city) {
     // Limpiar el nombre de la ciudad para mostrar
     if (city.toLowerCase().contains('cartagena')) {
       return 'Cartagena, Colombia';
     }
+
+    // Agregar nombre de país para ciudades principales
+    final lowerCity = city.toLowerCase();
+    if (lowerCity.contains('bogota')) return 'Bogotá, Colombia';
+    if (lowerCity.contains('medellin')) return 'Medellín, Colombia';
+    if (lowerCity.contains('cali')) return 'Cali, Colombia';
+    if (lowerCity.contains('paris')) return 'París, Francia';
+    if (lowerCity.contains('london')) return 'Londres, Reino Unido';
+    if (lowerCity.contains('new york')) return 'Nueva York, EE.UU.';
+    if (lowerCity.contains('madrid')) return 'Madrid, España';
+    if (lowerCity.contains('barcelona')) return 'Barcelona, España';
+    if (lowerCity.contains('berlin')) return 'Berlín, Alemania';
+    if (lowerCity.contains('rome')) return 'Roma, Italia';
+    if (lowerCity.contains('tokyo')) return 'Tokio, Japón';
+    if (lowerCity.contains('miami')) return 'Miami, EE.UU.';
+    if (lowerCity.contains('mexico city')) return 'Ciudad de México, México';
 
     // Remover códigos de país y limpiar
     final cleaned = city.replaceAll(RegExp(r',\w{2}$'), '');

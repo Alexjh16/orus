@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+import 'dart:math'; // Importar para usar min()
 import '../models/weather_model.dart';
 
 import 'weather_service.dart';
@@ -14,10 +15,7 @@ class WeatherView extends StatefulWidget {
 
 class _WeatherViewState extends State<WeatherView>
     with SingleTickerProviderStateMixin {
-  final WeatherService _weatherService = Weat                                        child: _buildHighlightedText(
-                                          city, 
-                                          _cityController.text,
-                                        ),ice();
+  final WeatherService _weatherService = WeatherService();
   final TextEditingController _cityController = TextEditingController();
   WeatherModel? _currentWeather;
   List<WeatherModel>? _forecast;
@@ -29,6 +27,7 @@ class _WeatherViewState extends State<WeatherView>
   // Variables para el autocompletado
   List<String> _suggestedCities = [];
   final List<String> _popularCities = [
+    // Ciudades colombianas (nombres con tildes para mostrar correctamente)
     'Bogotá',
     'Medellín',
     'Cali',
@@ -47,6 +46,7 @@ class _WeatherViewState extends State<WeatherView>
     'Valledupar',
     'Montería',
     'Sincelejo',
+    // Ciudades internacionales populares
     'Ciudad de México',
     'Guadalajara',
     'Monterrey',
@@ -72,6 +72,7 @@ class _WeatherViewState extends State<WeatherView>
     'Toronto'
   ];
   bool _showSuggestions = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -88,6 +89,28 @@ class _WeatherViewState extends State<WeatherView>
     // Configurar listener para autocompletado
     _cityController.addListener(_onSearchChanged);
 
+    // Configurar listener para el foco (muestra/oculta sugerencias)
+    _searchFocusNode.addListener(() {
+      print('=== FOCUS CHANGE ===');
+      print('Nuevo foco: ${_searchFocusNode.hasFocus}');
+
+      if (_searchFocusNode.hasFocus) {
+        // Cuando recibe foco, mostrar sugerencias inmediatamente
+        _onSearchChanged();
+      } else {
+        // Cuando pierde foco, ocultar sugerencias después de un delay
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (mounted) {
+            setState(() {
+              _showSuggestions = false;
+            });
+            print('Ocultando sugerencias por pérdida de foco');
+          }
+        });
+      }
+      print('====================');
+    });
+
     // Iniciar con un valor predeterminado
     _getWeatherForCity("Cartagena");
   }
@@ -97,38 +120,161 @@ class _WeatherViewState extends State<WeatherView>
     _cityController.removeListener(_onSearchChanged);
     _cityController.dispose();
     _animationController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   // Método para filtrar sugerencias cuando cambia el texto
   void _onSearchChanged() {
-    final query = _cityController.text.toLowerCase();
+    final query = _cityController.text.trim();
+
+    print('=== _onSearchChanged ===');
+    print('Texto: "$query"');
+    print('Focus: ${_searchFocusNode.hasFocus}');
+    print('ShowSuggestions actual: $_showSuggestions');
+
+    // Filtrar ciudades
+    List<String> suggestions = [];
 
     if (query.isEmpty) {
-      setState(() {
-        _suggestedCities = [];
-        _showSuggestions = false;
-      });
-      return;
+      suggestions =
+          _popularCities.take(5).toList(); // Solo las primeras 5 para prueba
+    } else {
+      final normalizedQuery = _normalizeText(query).toLowerCase();
+      suggestions = _popularCities
+          .where((city) =>
+              _normalizeText(city).toLowerCase().contains(normalizedQuery))
+          .take(5)
+          .toList();
     }
 
-    final suggestions = _popularCities
-        .where((city) => city.toLowerCase().contains(query))
-        .toList();
+    print('Sugerencias encontradas: ${suggestions.length}');
+    print('Lista de sugerencias: $suggestions');
 
+    // FORZAR actualización del estado
     setState(() {
       _suggestedCities = suggestions;
       _showSuggestions = suggestions.isNotEmpty;
     });
-  }
 
-  // Método para seleccionar una ciudad de las sugerencias
+    print('ShowSuggestions después de setState: $_showSuggestions');
+    print('========================');
+  } // Método para seleccionar una ciudad de las sugerencias
+
   void _selectCity(String city) {
-    _cityController.text = city;
+    print('Seleccionando ciudad: $city');
+
+    // Primero ocultar las sugerencias para una transición suave
     setState(() {
       _showSuggestions = false;
     });
+
+    // Actualizar el texto inmediatamente
+    _cityController.text = city;
+
+    // Quitar el foco del campo de texto
+    _searchFocusNode.unfocus();
+
+    // Buscar el clima para la ciudad seleccionada
     _getWeatherForCity(city);
+
+    print('Ciudad seleccionada: $city');
+  }
+
+  // Método para normalizar texto (eliminar tildes y caracteres especiales)
+  String _normalizeText(String text) {
+    // Mapa de reemplazos para caracteres especiales
+    final Map<String, String> replacements = {
+      'á': 'a',
+      'é': 'e',
+      'í': 'i',
+      'ó': 'o',
+      'ú': 'u',
+      'Á': 'A',
+      'É': 'E',
+      'Í': 'I',
+      'Ó': 'O',
+      'Ú': 'U',
+      'ñ': 'n',
+      'Ñ': 'N',
+      'ü': 'u',
+      'Ü': 'U',
+    };
+
+    String normalized = text;
+    replacements.forEach((key, value) {
+      normalized = normalized.replaceAll(key, value);
+    });
+
+    return normalized;
+  } // Método para construir texto con la parte buscada resaltada
+
+  Widget _buildHighlightedText(String text, String query) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      );
+    }
+
+    // Normalizar tanto el texto como la consulta para buscar sin acentos
+    final normalizedText = _normalizeText(text).toLowerCase();
+    final normalizedQuery = _normalizeText(query).toLowerCase();
+
+    if (!normalizedText.contains(normalizedQuery)) {
+      return Text(
+        text,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      );
+    }
+
+    final int startIndex = normalizedText.indexOf(normalizedQuery);
+    // Asegurar que endIndex no exceda el tamaño del texto
+    final int endIndex = min(startIndex + normalizedQuery.length, text.length);
+
+    return RichText(
+      text: TextSpan(
+        children: [
+          // Texto antes del match
+          if (startIndex > 0)
+            TextSpan(
+              text: text.substring(0, startIndex),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+
+          // Texto resaltado (match) con mejor visualización
+          TextSpan(
+            text: text.substring(startIndex, endIndex),
+            style: GoogleFonts.inter(
+              color: Colors.black, // Texto en negro para mejor contraste
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              backgroundColor: Colors.yellowAccent
+                  .withOpacity(0.7), // Resaltado amarillo más visible
+            ),
+          ),
+
+          // Texto después del match
+          if (endIndex < text.length)
+            TextSpan(
+              text: text.substring(endIndex),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _getWeatherForCity(String city) async {
@@ -139,14 +285,18 @@ class _WeatherViewState extends State<WeatherView>
       return;
     }
 
+    // Eliminar tildes y caracteres especiales para mayor compatibilidad con la API
+    final normalizedCity = _normalizeText(city);
+    print('Buscando clima para: $normalizedCity');
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final weather = await _weatherService.getCurrentWeather(city);
-      final forecast = await _weatherService.getForecast(city);
+      final weather = await _weatherService.getCurrentWeather(normalizedCity);
+      final forecast = await _weatherService.getForecast(normalizedCity);
 
       setState(() {
         _currentWeather = weather;
@@ -399,6 +549,7 @@ class _WeatherViewState extends State<WeatherView>
                               Expanded(
                                 child: TextField(
                                   controller: _cityController,
+                                  focusNode: _searchFocusNode,
                                   style: GoogleFonts.inter(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -412,8 +563,22 @@ class _WeatherViewState extends State<WeatherView>
                                     contentPadding: const EdgeInsets.symmetric(
                                         vertical: 16),
                                   ),
-                                  onSubmitted: (value) =>
-                                      _getWeatherForCity(value),
+                                  onChanged: (value) {
+                                    print('TextField onChanged: "$value"');
+                                    _onSearchChanged();
+                                  },
+                                  onSubmitted: (value) {
+                                    setState(() {
+                                      _showSuggestions = false;
+                                    });
+                                    _getWeatherForCity(value);
+                                  },
+                                  // Mostrar sugerencias al dar clic
+                                  onTap: () {
+                                    print('TextField onTap ejecutado');
+                                    // Mostrar sugerencias inmediatamente
+                                    _onSearchChanged();
+                                  },
                                 ),
                               ),
                               IconButton(
@@ -424,66 +589,138 @@ class _WeatherViewState extends State<WeatherView>
                                 onPressed: () =>
                                     _getWeatherForCity(_cityController.text),
                               ),
+                              // BOTÓN DE PRUEBA TEMPORAL - ELIMINAR DESPUÉS DE DEPURAR
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.visibility,
+                                  color: Colors.yellow,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  print('=== BOTÓN DE PRUEBA PRESIONADO ===');
+                                  setState(() {
+                                    _showSuggestions = !_showSuggestions;
+                                    _suggestedCities = [
+                                      'Bogotá',
+                                      'Medellín',
+                                      'Cali',
+                                      'Barranquilla',
+                                      'Cartagena'
+                                    ];
+                                  });
+                                  print('ShowSuggestions: $_showSuggestions');
+                                  print('SuggestedCities: $_suggestedCities');
+                                  print(
+                                      '======================================');
+                                },
+                                tooltip: 'Mostrar/Ocultar sugerencias',
+                              ),
                             ],
                           ),
                         ),
                       ),
                     ),
 
-                    // Lista de sugerencias
+                    // Lista de sugerencias - VERSIÓN SIMPLIFICADA Y MUY VISIBLE
                     if (_showSuggestions && _suggestedCities.isNotEmpty)
                       Positioned(
-                        top: 60,
+                        top: 65,
                         left: 0,
                         right: 0,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              constraints: const BoxConstraints(maxHeight: 200),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors
+                                .white, // FONDO BLANCO COMPLETAMENTE OPACO
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                                spreadRadius: 2,
                               ),
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  children: _suggestedCities.map((city) {
-                                    return Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () => _selectCity(city),
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 12,
-                                          ),
-                                          child: Text(
-                                            city,
-                                            style: GoogleFonts.inter(
-                                              color: Colors.white,
-                                              fontSize: 16,
+                            ],
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 250),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Encabezado
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Ciudades sugeridas (${_suggestedCities.length})',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.blue.shade800,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              // Lista de ciudades
+                              Flexible(
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  itemCount: _suggestedCities.length,
+                                  itemBuilder: (context, index) {
+                                    final city = _suggestedCities[index];
+                                    return InkWell(
+                                      onTap: () {
+                                        print('CITY TAPPED: $city');
+                                        _selectCity(city);
+                                      },
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey.shade200,
+                                              width: 1,
                                             ),
                                           ),
                                         ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on,
+                                              color: Colors.blue.shade600,
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                city,
+                                                style: GoogleFonts.inter(
+                                                  color: Colors.black87,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     );
-                                  }).toList(),
+                                  },
                                 ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
