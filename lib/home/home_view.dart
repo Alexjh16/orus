@@ -100,7 +100,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                                     : Container(),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Previous',
+                                  'Anterior',
                                   style: GoogleFonts.inter(
                                     color: _currentPage != 0
                                         ? Colors.white
@@ -138,7 +138,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'Next',
+                                        'Siguiente',
                                         style: GoogleFonts.inter(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -189,19 +189,19 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   List<Widget> _buildPages() {
     return [
       _buildPage(
-        title: 'Rápido, Fluido y Seguro',
-        description: 'Disfruta lo mejor del mundo en la palma de tus manos.',
+        title: 'Rápido Y Fluido',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
         icon: Icons.speed_outlined,
       ),
       _buildPage(
         title: 'Calculadora Inteligente',
         description:
-            'Realiza cálculos matemáticos con nuestra herramienta fácil de usar.',
+            'Realiza cálculos matemáticos con nuestra herramienta precisa!!!',
         icon: Icons.calculate_outlined,
       ),
       _buildPage(
         title: 'Clima en Tiempo Real',
-        description: 'Mantente informado sobre el clima de tu ciudad favorita.',
+        description: 'Mantente informado sobre el clima de tu ciudad.',
         icon: Icons.cloud_outlined,
       ),
     ];

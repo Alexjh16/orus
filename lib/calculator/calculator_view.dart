@@ -10,7 +10,8 @@ class CalculatorView extends StatefulWidget {
   State<CalculatorView> createState() => _CalculatorViewState();
 }
 
-class _CalculatorViewState extends State<CalculatorView> with SingleTickerProviderStateMixin {
+class _CalculatorViewState extends State<CalculatorView>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _firstNumberController = TextEditingController();
   final TextEditingController _secondNumberController = TextEditingController();
   double _result = 0;
@@ -69,15 +70,40 @@ class _CalculatorViewState extends State<CalculatorView> with SingleTickerProvid
           _result = firstNum / secondNum;
           break;
         case 'potencia':
-          _result = math.pow(firstNum, secondNum).toDouble();
+          try {
+            double potenciaResult = math.pow(firstNum, secondNum).toDouble();
+            if (potenciaResult.isInfinite || potenciaResult.isNaN) {
+              _showError(
+                  'La operación resulta en un valor demasiado grande (infinito)');
+              return;
+            }
+            _result = potenciaResult;
+          } catch (e) {
+            _showError('Error en la operación de potencia: ${e.toString()}');
+            return;
+          }
           break;
         case 'raiz':
           if (firstNum < 0) {
             _showError('No se puede calcular raíz de número negativo');
             return;
           }
-          // Raíz n-ésima: firstNum^(1/secondNum)
-          _result = math.pow(firstNum, 1 / secondNum).toDouble();
+          if (secondNum == 0) {
+            _showError('No se puede usar 0 como índice de una raíz');
+            return;
+          }
+          try {
+            // Raíz n-ésima: firstNum^(1/secondNum)
+            double raizResult = math.pow(firstNum, 1 / secondNum).toDouble();
+            if (raizResult.isInfinite || raizResult.isNaN) {
+              _showError('La operación resulta en un valor no válido');
+              return;
+            }
+            _result = raizResult;
+          } catch (e) {
+            _showError('Error en la operación de raíz: ${e.toString()}');
+            return;
+          }
           break;
       }
       _showResultModal = true;
@@ -285,7 +311,7 @@ class _CalculatorViewState extends State<CalculatorView> with SingleTickerProvid
               ),
             ),
           ),
-          
+
           // Modal con blur para mostrar el resultado
           if (_showResultModal)
             Positioned.fill(
@@ -309,88 +335,97 @@ class _CalculatorViewState extends State<CalculatorView> with SingleTickerProvid
                             builder: (context, scale, child) {
                               return Transform.scale(
                                 scale: scale,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF4052B6),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
+                                child: FractionallySizedBox(
+                                  widthFactor:
+                                      0.95, // Esto hace que el modal sea el 95% del ancho de la pantalla
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16, horizontal: 24),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4052B6),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.2),
+                                        width: 1,
                                       ),
-                                    ],
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
-                                      width: 1,
                                     ),
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Σ',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 40,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Resultado',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 18,
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(15),
-                                        ),
-                                        child: Text(
-                                          _result == _result.toInt()
-                                              ? _result.toInt().toString()
-                                              : _result.toStringAsFixed(2),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Σ',
                                           style: GoogleFonts.inter(
-                                            fontSize: 48,
+                                            fontSize: 30,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      ElevatedButton(
-                                        onPressed: _clearAll,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          foregroundColor: const Color(0xFF4052B6),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(30),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Cerrar',
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Resultado',
                                           style: GoogleFonts.inter(
                                             fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                            color:
+                                                Colors.white.withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 10),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 30,
+                                            vertical: 12,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.white.withOpacity(0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Text(
+                                            _result == _result.toInt()
+                                                ? _result.toInt().toString()
+                                                : _result.toStringAsFixed(2),
+                                            style: GoogleFonts.inter(
+                                              fontSize: 48,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        ElevatedButton(
+                                          onPressed: _clearAll,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor:
+                                                const Color(0xFF4052B6),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 20,
+                                              vertical: 8,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Cerrar',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
