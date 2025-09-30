@@ -7,11 +7,27 @@ class WeatherService {
   static const String baseUrl = 'https://api.openweathermap.org/data/2.5';
   // Reemplaza este apiKey con el tuyo después de registrarte en OpenWeatherMap
   static const String apiKey =
-      '308047a37b50a9adfee7e3c80b12d201'; // Obtén tu API key en openweathermap.org
+      '419ddbc13e81de0bc95ad3542003e2fc'; // Obtén tu API key en openweathermap.org
+
+  // Configuración para control de datos simulados/reales
+  bool _useSimulatedData = true; // Cambia a false cuando tu API key esté activa
+
+  // Getter para saber si estamos usando datos simulados
+  bool get isUsingSimulatedData => _useSimulatedData;
+
+  // Método para cambiar entre datos simulados y reales
+  void toggleDataMode(bool useSimulated) {
+    _useSimulatedData = useSimulated;
+  }
 
   final Random _random = Random();
 
   Future<WeatherModel> getCurrentWeather(String city) async {
+    // Si estamos usando datos simulados, devolver directamente
+    if (_useSimulatedData) {
+      return _getSimulatedWeather(city);
+    }
+
     try {
       // Intentar usar la API real
       final response = await http.get(
@@ -31,8 +47,8 @@ class WeatherService {
 
         // Si es error de API key
         if (response.statusCode == 401) {
-          throw Exception(
-              'API key inválida. Por favor registra tu API key en openweathermap.org');
+          print('API key aún no activada, usando datos simulados por ahora');
+          return _getSimulatedWeather(city);
         }
 
         // Si la ciudad no existe
@@ -51,6 +67,11 @@ class WeatherService {
   }
 
   Future<List<WeatherModel>> getForecast(String city) async {
+    // Si estamos usando datos simulados, devolver directamente
+    if (_useSimulatedData) {
+      return _getSimulatedForecast(city);
+    }
+
     try {
       final response = await http.get(
         Uri.parse(
@@ -75,8 +96,8 @@ class WeatherService {
 
         // Si es error de API key
         if (response.statusCode == 401) {
-          throw Exception(
-              'API key inválida. Por favor registra tu API key en openweathermap.org');
+          print('API key aún no activada, usando datos simulados por ahora');
+          return _getSimulatedForecast(city);
         }
 
         // Si la ciudad no existe
@@ -228,30 +249,115 @@ class WeatherService {
 
   List<WeatherModel> _getSimulatedForecast(String city) {
     List<WeatherModel> forecast = [];
-    final baseTemp = city.toLowerCase().contains('cartagena') ? 28.0 : 22.0;
+
+    // Personalizar según la ciudad
+    final isCartagena = city.toLowerCase().contains('cartagena');
+    final baseTemp = isCartagena ? 28.0 : 22.0;
+
+    // Tendencias de clima para simular patrones realistas
+    final weatherPatterns = [
+      // Patrón estable
+      ['☀️', '☀️', '🌤️', '☀️', '☀️'],
+      // Patrón empeorando
+      ['☀️', '🌤️', '⛅', '☁️', '🌧️'],
+      // Patrón mejorando
+      ['🌧️', '⛅', '🌤️', '☀️', '☀️'],
+      // Patrón variable
+      ['☀️', '⛅', '🌦️', '⛅', '☀️'],
+      // Patrón con tormenta
+      ['⛅', '🌩️', '�️', '⛅', '�️'],
+    ];
+
+    // Descripciones divertidas para cada ícono
+    final iconDescriptions = {
+      '☀️': [
+        'Soleado como el escudo de Captain America',
+        'Brillante como el reactor de Iron Man',
+        'Resplandeciente como Vision'
+      ],
+      '🌤️': [
+        'Parcialmente nublado, como el humor de Hulk',
+        'Algunas nubes, estilo Thor mode'
+      ],
+      '⛅': [
+        'Nubes intermitentes, como las apariciones de Loki',
+        'Mitad sol, mitad nubes, como Two-Face'
+      ],
+      '☁️': [
+        'Nublado como los pensamientos de Vision',
+        'Gris como el traje de War Machine'
+      ],
+      '🌦️': [
+        'Lluvia leve con sol, estilo Storm contenida',
+        'Chispas como los rayos de Thor'
+      ],
+      '🌧️': [
+        'Lluvia como las lágrimas de Black Widow',
+        'Diluvio estilo Namor'
+      ],
+      '🌩️': [
+        'Tormenta eléctrica, Thor está enojado',
+        'Relámpagos tipo Shazam!'
+      ],
+    };
+
+    // Elegir un patrón basado en la ciudad
+    final cityHash = city.toLowerCase().codeUnits.fold(0, (a, b) => a + b);
+    final pattern = weatherPatterns[cityHash % weatherPatterns.length];
 
     for (int i = 0; i < 5; i++) {
-      final dayTemp = baseTemp + (_random.nextDouble() * 8) - 4;
-      final weatherIcons = ['☀️', '🌤️', '☁️', '🌦️', '⛅'];
-      final descriptions = [
-        'Soleado',
-        'Parcialmente nublado',
-        'Nublado',
-        'Lluvia ligera',
-        'Variable'
-      ];
+      // Temperatura con tendencia realista
+      final tempVariation = isCartagena ? 4.0 : 6.0;
+      final dayTemp = baseTemp +
+          (sin(i * 0.8) * tempVariation) +
+          (_random.nextDouble() * 2 - 1);
 
-      final conditionIndex = _random.nextInt(weatherIcons.length);
+      // Obtener ícono del patrón
+      final icon = pattern[i];
+
+      // Obtener descripción aleatoria para el ícono
+      final descriptions =
+          iconDescriptions[icon] ?? ['Clima impredecible como Doctor Strange'];
+      final description = descriptions[_random.nextInt(descriptions.length)];
+
+      // Humedad relacionada con el ícono (más humedad con lluvia, menos con sol)
+      double humidity = 60;
+      if (icon.contains('☀️'))
+        humidity = 50 + _random.nextDouble() * 15;
+      else if (icon.contains('🌧️') || icon.contains('🌩️'))
+        humidity = 75 + _random.nextDouble() * 15;
+      else
+        humidity = 60 + _random.nextDouble() * 20;
+
+      // Viento variable pero relacionado con tormentas
+      double windSpeed = 10;
+      if (icon.contains('🌩️'))
+        windSpeed = 20 + _random.nextDouble() * 10;
+      else
+        windSpeed = 8 + _random.nextDouble() * 12;
+
+      // Precipitación basada en el ícono
+      double precipitation = 0;
+      if (icon.contains('🌧️'))
+        precipitation = 2 + _random.nextDouble() * 3;
+      else if (icon.contains('🌦️'))
+        precipitation = 0.5 + _random.nextDouble() * 1.5;
+      else if (icon.contains('🌩️'))
+        precipitation = 3 + _random.nextDouble() * 5;
+      else
+        precipitation = _random.nextDouble() * 0.5;
 
       forecast.add(WeatherModel(
         cityName: _cleanCityName(city),
         temperature: dayTemp,
-        description: descriptions[conditionIndex],
-        icon: weatherIcons[conditionIndex],
-        humidity: 60 + _random.nextDouble() * 25,
-        windSpeed: 10 + _random.nextDouble() * 15,
+        description: description,
+        icon: icon,
+        humidity: humidity,
+        windSpeed: windSpeed,
         feelsLike: dayTemp + (_random.nextDouble() * 4) - 2,
-        precipitation: _random.nextDouble() * 3,
+        precipitation: precipitation,
+        pressure: 1010 + _random.nextInt(20) - 10,
+        visibility: 7000 + _random.nextInt(5000),
         dateTime: DateTime.now().add(Duration(days: i + 1)),
       ));
     }
@@ -271,6 +377,11 @@ class WeatherService {
   }
 
   Future<WeatherModel> getCurrentWeatherByCoords(double lat, double lon) async {
+    // Si estamos usando datos simulados, devolver directamente
+    if (_useSimulatedData) {
+      return _getSimulatedWeather('Ubicación actual');
+    }
+
     try {
       final response = await http.get(
         Uri.parse(
@@ -284,6 +395,12 @@ class WeatherService {
       } else {
         print(
             'Error API OpenWeatherMap (Coords): ${response.statusCode} - ${response.body}');
+
+        // Si es error de API key
+        if (response.statusCode == 401) {
+          print('API key aún no activada, usando datos simulados por ahora');
+        }
+
         return _getSimulatedWeather('Ubicación actual');
       }
     } catch (e) {
@@ -292,8 +409,9 @@ class WeatherService {
     }
   }
 
-  /// Verifica si la API key configurada es válida
-  Future<bool> isApiKeyValid() async {
+  /// Verifica si la API key configurada es válida y establece el modo de datos automáticamente
+  Future<Map<String, dynamic>> checkApiKeyAndSetMode(
+      {bool autoSet = true}) async {
     try {
       // Intenta obtener el clima de una ciudad conocida
       final response = await http.get(
@@ -302,10 +420,51 @@ class WeatherService {
       ).timeout(const Duration(seconds: 5));
 
       // Si el código es 200, la API key es válida
-      return response.statusCode == 200;
+      final bool isValid = response.statusCode == 200;
+
+      // Si autoSet está activado, cambiar el modo de datos
+      if (autoSet) {
+        toggleDataMode(!isValid); // Usar datos simulados si la API no es válida
+      }
+
+      String message = '';
+      if (isValid) {
+        message = 'API key válida. Usando datos reales del clima.';
+      } else if (response.statusCode == 401) {
+        message =
+            'API key aún no activada. Puede tomar hasta 2 horas. Usando datos simulados por ahora.';
+      } else {
+        message =
+            'Error al verificar API key: ${response.statusCode}. Usando datos simulados.';
+      }
+
+      return {
+        'isValid': isValid,
+        'message': message,
+        'statusCode': response.statusCode,
+        'usingSimulatedData': _useSimulatedData
+      };
     } catch (e) {
       print('Error al verificar API key: $e');
-      return false;
+
+      // Si autoSet está activado, cambiar a datos simulados en caso de error
+      if (autoSet) {
+        toggleDataMode(true);
+      }
+
+      return {
+        'isValid': false,
+        'message':
+            'Error de conexión al verificar API key. Usando datos simulados.',
+        'error': e.toString(),
+        'usingSimulatedData': _useSimulatedData
+      };
     }
+  }
+
+  /// Método anterior para compatibilidad
+  Future<bool> isApiKeyValid() async {
+    final result = await checkApiKeyAndSetMode(autoSet: false);
+    return result['isValid'] as bool;
   }
 }

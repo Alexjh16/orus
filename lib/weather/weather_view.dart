@@ -5,7 +5,6 @@ import '../models/weather_model.dart';
 
 import 'weather_service.dart';
 
-
 class WeatherView extends StatefulWidget {
   const WeatherView({super.key});
 
@@ -13,7 +12,8 @@ class WeatherView extends StatefulWidget {
   State<WeatherView> createState() => _WeatherViewState();
 }
 
-class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStateMixin {
+class _WeatherViewState extends State<WeatherView>
+    with SingleTickerProviderStateMixin {
   final WeatherService _weatherService = WeatherService();
   final TextEditingController _cityController = TextEditingController();
   WeatherModel? _currentWeather;
@@ -61,14 +61,14 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
     try {
       final weather = await _weatherService.getCurrentWeather(city);
       final forecast = await _weatherService.getForecast(city);
-      
+
       setState(() {
         _currentWeather = weather;
         _forecast = forecast;
         _isLoading = false;
         _error = null;
       });
-      
+
       _animationController.reset();
       _animationController.forward();
     } catch (e) {
@@ -77,6 +77,118 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
         _isLoading = false;
       });
     }
+  }
+
+  // Diálogo para configurar API key y modo de datos
+  void _showApiKeySettingsDialog() {
+    bool useSimulatedData = _weatherService.isUsingSimulatedData;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text(
+              'Configuración de API',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'La API key puede tardar hasta 2 horas en activarse después del registro.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Selector de modo de datos
+                Row(
+                  children: [
+                    Text(
+                      'Usar datos simulados:',
+                      style: GoogleFonts.inter(),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: useSimulatedData,
+                      activeColor: const Color(0xFF4052B6),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          useSimulatedData = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Cancelar',
+                  style: GoogleFonts.inter(
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+
+                  // Mostrar indicador de carga
+                  setState(() {
+                    _isLoading = true;
+                  });
+
+                  // Aplicar cambios de modo de datos
+                  _weatherService.toggleDataMode(useSimulatedData);
+
+                  // Verificar API key si se está usando datos reales
+                  if (!useSimulatedData) {
+                    final result =
+                        await _weatherService.checkApiKeyAndSetMode();
+
+                    // Mostrar resultado de la verificación
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(result['message']),
+                          backgroundColor:
+                              result['isValid'] ? Colors.green : Colors.orange,
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                  }
+
+                  // Actualizar el clima con el nuevo modo
+                  if (_cityController.text.isNotEmpty) {
+                    _getWeatherForCity(_cityController.text);
+                  } else {
+                    _getWeatherForCity('Cartagena');
+                  }
+                },
+                child: Text(
+                  'Guardar y Verificar',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF4052B6),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -90,14 +202,28 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              // Título con estilo
-              Text(
-                'Clima',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+              // Título con estilo y botón de configuración
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Clima',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.settings,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: _showApiKeySettingsDialog,
+                    tooltip: 'Configurar API',
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
@@ -107,8 +233,38 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
                   fontSize: 16,
                 ),
               ),
+              // Indicador de modo simulado
+              if (_weatherService.isUsingSimulatedData)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Usando datos simulados',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 24),
-              
+
               // Buscador con estilo moderno
               ClipRRect(
                 borderRadius: BorderRadius.circular(15),
@@ -123,7 +279,8 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
                         width: 1.5,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Row(
                       children: [
                         Expanded(
@@ -139,7 +296,8 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
                                 color: Colors.white.withOpacity(0.7),
                               ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onSubmitted: (value) => _getWeatherForCity(value),
                           ),
@@ -149,16 +307,17 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
                             Icons.search_rounded,
                             color: Colors.white,
                           ),
-                          onPressed: () => _getWeatherForCity(_cityController.text),
+                          onPressed: () =>
+                              _getWeatherForCity(_cityController.text),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Contenido principal
               Expanded(
                 child: _buildMainContent(),
@@ -174,11 +333,11 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
     if (_isLoading) {
       return _buildLoadingIndicator();
     }
-    
+
     if (_error != null) {
       return _buildErrorMessage();
     }
-    
+
     if (_currentWeather == null) {
       return Center(
         child: Text(
@@ -190,7 +349,7 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
         ),
       );
     }
-    
+
     return FadeTransition(
       opacity: _animation,
       child: SingleChildScrollView(
@@ -200,9 +359,9 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
           children: [
             // Tarjeta principal del clima actual
             _buildWeatherCard(),
-            
+
             const SizedBox(height: 24),
-            
+
             // Pronóstico para los próximos días
             if (_forecast != null && _forecast!.isNotEmpty)
               _buildForecastSection(),
@@ -292,7 +451,8 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF4052B6),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -313,7 +473,7 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
 
   Widget _buildWeatherCard() {
     final weather = _currentWeather!;
-    
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
@@ -429,7 +589,7 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
 
   Widget _buildWeatherDetails() {
     final weather = _currentWeather!;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -508,7 +668,8 @@ class _WeatherViewState extends State<WeatherView> with SingleTickerProviderStat
             itemBuilder: (context, index) {
               final day = _forecast![index];
               return Container(
-                margin: EdgeInsets.only(right: index < _forecast!.length - 1 ? 12 : 0),
+                margin: EdgeInsets.only(
+                    right: index < _forecast!.length - 1 ? 12 : 0),
                 padding: const EdgeInsets.all(16),
                 width: 120,
                 decoration: BoxDecoration(
