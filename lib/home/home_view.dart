@@ -192,7 +192,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     return [
       _buildPage(
         title: 'Rápido Y Fluido',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+        description:
+            '💀⚠️ Una aplicación para el climita y algunas operaciones complejamente difíciles de matemáticas.⚠️💀',
         icon: Icons.speed_outlined,
       ),
       _buildPage(
