@@ -1,16 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // Para detectar si es web
 import '../models/weather_model.dart';
 
 class WeatherService {
   static const String baseUrl = 'https://api.openweathermap.org/data/2.5';
+  // Proxy CORS para resolver problemas en web deployments
+  static const String corsProxy = 'https://cors-anywhere.herokuapp.com/';
+  static const String altCorsProxy = 'https://api.allorigins.win/raw?url=';
+  
   // Reemplaza este apiKey con el tuyo después de registrarte en OpenWeatherMap
   static const String apiKey =
       '419ddbc13e81de0bc95ad3542003e2fc'; // Obtén tu API key en openweathermap.org
 
   // Configuración para control de datos simulados/reales
-  bool _useSimulatedData = true; // Cambia a false cuando tu API key esté activa
+  bool _useSimulatedData = false; // Por defecto usar API real
 
   // Getter para saber si estamos usando datos simulados
   bool get isUsingSimulatedData => _useSimulatedData;
@@ -33,21 +38,30 @@ class WeatherService {
       final cleanCity = _normalizeCity(city);
       print('Consultando API para ciudad: $cleanCity');
 
+      // Construir URL de la API
+      final apiUrl = '$baseUrl/weather?q=$cleanCity&appid=$apiKey&units=metric&lang=es';
+      
+      // En web, usar proxy CORS
+      final requestUrl = kIsWeb ? '${altCorsProxy}${Uri.encodeComponent(apiUrl)}' : apiUrl;
+      
+      print('🌐 URL de solicitud: $requestUrl');
+
       // Intentar usar la API real
       final response = await http.get(
-        Uri.parse(
-            '$baseUrl/weather?q=$cleanCity&appid=$apiKey&units=metric&lang=es'),
-        headers: {'User-Agent': 'OrusWeatherApp/1.0'},
-      ).timeout(
-          const Duration(seconds: 10)); // Aumentamos el timeout a 10 segundos
+        Uri.parse(requestUrl),
+        headers: kIsWeb ? {
+          'Content-Type': 'application/json',
+        } : {
+          'User-Agent': 'OrusWeatherApp/1.0',
+        },
+      ).timeout(const Duration(seconds: 15)); // Más tiempo para proxy
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return WeatherModel.fromJson(data);
       } else {
         // Si la API devuelve un error
-        print(
-            'Error API OpenWeatherMap: ${response.statusCode} - ${response.body}');
+        print('Error API OpenWeatherMap: ${response.statusCode} - ${response.body}');
 
         // Si es error de API key
         if (response.statusCode == 401) {
@@ -72,6 +86,12 @@ class WeatherService {
     } catch (e) {
       // Si hay error de conexión o cualquier otro error
       print('Error al obtener clima: $e');
+      
+      // En caso de error de CORS o proxy, mostrar mensaje útil
+      if (kIsWeb && e.toString().contains('CORS')) {
+        print('⚠️ Error CORS detectado, probando con datos simulados como respaldo');
+      }
+      
       if (e.toString().contains('Ciudad no encontrada')) {
         throw e; // Re-lanzar el error para que se muestre correctamente al usuario
       }
@@ -90,11 +110,20 @@ class WeatherService {
       final cleanCity = _normalizeCity(city);
       print('Consultando API de pronóstico para ciudad: $cleanCity');
 
+      // Construir URL de la API
+      final apiUrl = '$baseUrl/forecast?q=$cleanCity&appid=$apiKey&units=metric&lang=es';
+      
+      // En web, usar proxy CORS
+      final requestUrl = kIsWeb ? '${altCorsProxy}${Uri.encodeComponent(apiUrl)}' : apiUrl;
+
       final response = await http.get(
-        Uri.parse(
-            '$baseUrl/forecast?q=$cleanCity&appid=$apiKey&units=metric&lang=es'),
-        headers: {'User-Agent': 'OrusWeatherApp/1.0'},
-      ).timeout(const Duration(seconds: 10));
+        Uri.parse(requestUrl),
+        headers: kIsWeb ? {
+          'Content-Type': 'application/json',
+        } : {
+          'User-Agent': 'OrusWeatherApp/1.0',
+        },
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -108,8 +137,7 @@ class WeatherService {
         return forecast;
       } else {
         // Si la API devuelve un error
-        print(
-            'Error API OpenWeatherMap (Pronóstico): ${response.statusCode} - ${response.body}');
+        print('Error API OpenWeatherMap (Pronóstico): ${response.statusCode} - ${response.body}');
 
         // Si es error de API key
         if (response.statusCode == 401) {
@@ -122,8 +150,7 @@ class WeatherService {
           // Probar con variaciones del nombre de la ciudad
           final alternativeName = _getAlternativeName(city);
           if (alternativeName != cleanCity) {
-            print(
-                'Probando con nombre alternativo para pronóstico: $alternativeName');
+            print('Probando con nombre alternativo para pronóstico: $alternativeName');
             return getForecast(alternativeName);
           }
           throw Exception('Ciudad no encontrada. Intenta con otra ciudad.');
@@ -133,6 +160,12 @@ class WeatherService {
       }
     } catch (e) {
       print('Error al obtener pronóstico: $e');
+      
+      // En caso de error de CORS o proxy, mostrar mensaje útil
+      if (kIsWeb && e.toString().contains('CORS')) {
+        print('⚠️ Error CORS en pronóstico, usando datos simulados como respaldo');
+      }
+      
       if (e.toString().contains('Ciudad no encontrada')) {
         throw e; // Re-lanzar el error para que se muestre correctamente al usuario
       }
