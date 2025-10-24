@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:orus/home/home_page.dart';
 import 'package:orus/calculator/calculator_page.dart';
 import 'package:orus/weather/weather_page.dart';
+import 'package:orus/login/login_page.dart';
 
 void main() {
   runApp(const OrusApp());
@@ -133,6 +134,13 @@ class _MainScreenState extends State<MainScreen> {
                     title: 'Clima',
                     onTap: () => _navigateToPage(const WeatherPage(), 'Clima'),
                     isSelected: _currentTitle == 'Clima',
+                  ),
+                  //icono para login
+                  _buildDrawerItem(
+                    icon: Icons.login,
+                    title: 'Iniciar Sesión',
+                    onTap: () => _navigateToPage(const LoginPage(), 'Iniciar Sesión'),
+                    isSelected: _currentTitle == 'Iniciar Sesión',
                   ),
                 ],
               ),

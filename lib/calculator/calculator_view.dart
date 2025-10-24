@@ -62,7 +62,7 @@ class _CalculatorViewState extends State<CalculatorView>
         case 'multiplicar':
           _result = firstNum * secondNum;
           break;
-        case 'dividir':
+        case 'dividir': 
           if (secondNum == 0) {
             _showError('No se puede dividir por cero');
             return;
