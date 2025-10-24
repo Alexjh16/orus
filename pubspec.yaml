@@ -38,6 +38,12 @@ dependencies:
   http: ^1.1.0
   permission_handler: ^11.3.1
   geolocator: ^13.0.1
+  
+  # Mapa de tesoros - Nuevas dependencias
+  google_maps_flutter: ^2.5.3
+  camera: ^0.10.5+9
+  image_picker: ^1.0.7
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:

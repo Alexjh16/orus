@@ -53,6 +53,7 @@ class _LoginViewState extends State<LoginView> {
                 name: response['name'] ?? 'Usuario',
                 lastName: response['last_name'] ?? '',
                 estado: response['estado'] ?? 'Desconocido',
+                mongoId: response['mongo_id'] ?? '',
               ),
             ),
           );
@@ -99,6 +100,7 @@ class _LoginViewState extends State<LoginView> {
 
       final username = userData['username'] ?? 'N/A';
       final email = userData['email'] ?? 'N/A';
+      final mongoId = userData['mongo_id'] ?? 'N/A';
 
       if (mounted) {
         showDialog(
@@ -112,6 +114,7 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   Text('Username: $username'),
                   Text('Email: $email'),
+                  Text('MongoID: $mongoId'),
                   const SizedBox(height: 16),
                   Text('Contraseña por defecto: 123456789a'),
                 ],

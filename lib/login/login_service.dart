@@ -6,7 +6,7 @@ import 'login_model.dart';
 class LoginService {
   // URLs para diferentes plataformas
   static const String localhostUrl = 'http://localhost:8000';
-  static const String localNetworkUrl = 'http://192.168.1.13:8000';
+  static const String localNetworkUrl = 'http://192.168.92.178:8000';
 
   // Elegir URL según la plataforma
   String get _baseUrl {
