@@ -39,6 +39,9 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
   // Estadísticas del usuario
   Map<String, dynamic> _userStats = {};
 
+  // Posición por defecto (ej: Bogotá, Colombia)
+  static const LatLng _defaultPosition = LatLng(4.7110, -74.0721);
+
   @override
   void initState() {
     super.initState();
@@ -47,11 +50,16 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
 
   Future<void> _initializeMap() async {
     await _requestLocationPermission();
+
+    // Intentar obtener ubicación actual
     if (_locationPermissionGranted) {
       await _getCurrentLocation();
-      await _loadNearbyTreasures();
-      await _loadUserStats();
     }
+
+    // Cargar tesoros (usando ubicación actual o por defecto)
+    await _loadNearbyTreasures();
+    await _loadUserStats();
+
     setState(() {
       _isLoading = false;
     });
@@ -75,18 +83,29 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permiso de ubicación denegado.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
     }
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permiso de ubicación denegado permanentemente.'),
+          content: Text(
+              'Permiso de ubicación denegado permanentemente. Habilítelo en configuración.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
+    // Si llegamos aquí, los permisos están concedidos (whileInUse o always)
     setState(() {
       _locationPermissionGranted = true;
     });
@@ -94,26 +113,45 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      _currentPosition = await Geolocator.getCurrentPosition();
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-          16,
-        ),
+      _currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
+
+      // Centrar mapa en ubicación actual si el controlador ya existe
+      if (_mapController != null) {
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+            16,
+          ),
+        );
+      }
     } catch (e) {
       print('Error obteniendo ubicación: $e');
+      // Mostrar mensaje pero no bloquear la app
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'No se pudo obtener la ubicación actual. Usando ubicación por defecto.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _loadNearbyTreasures() async {
-    if (_currentPosition == null) return;
+    // Usar ubicación actual o por defecto
+    final lat = _currentPosition?.latitude ?? _defaultPosition.latitude;
+    final lng = _currentPosition?.longitude ?? _defaultPosition.longitude;
 
     try {
       final treasures = await _treasureService.getNearbyTreasures(
-        _currentPosition!.latitude,
-        _currentPosition!.longitude,
-        5.0, // 5km de radio
+        lat,
+        lng,
+        1000.0, // 5km de radio
       );
 
       setState(() {
@@ -134,8 +172,11 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
 
   Future<void> _loadUserStats() async {
     try {
-      // Usar el ID del usuario (por ahora usamos el nombre como ID temporal)
-      final stats = await _treasureService.getUserStats(widget.name);
+      // Usar el mongoId del usuario como ID único
+      print(
+          'TreasureMapPage: Cargando estadísticas para usuario ${widget.mongoId}');
+      final stats = await _treasureService.getUserStats(widget.mongoId);
+      print('TreasureMapPage: Estadísticas cargadas: $stats');
       setState(() {
         _userStats = stats;
       });
@@ -286,24 +327,34 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
 
                 // Mapa
                 Expanded(
-                  child: _currentPosition == null
+                  child: _isLoading
                       ? const Center(
-                          child: Text('Obteniendo ubicación...'),
+                          child: CircularProgressIndicator(),
                         )
                       : GoogleMap(
                           initialCameraPosition: CameraPosition(
-                            target: LatLng(
-                              _currentPosition!.latitude,
-                              _currentPosition!.longitude,
-                            ),
+                            target: _currentPosition != null
+                                ? LatLng(_currentPosition!.latitude,
+                                    _currentPosition!.longitude)
+                                : _defaultPosition,
                             zoom: 16,
                           ),
                           onMapCreated: (controller) {
                             _mapController = controller;
+                            // Si tenemos ubicación, centrar el mapa
+                            if (_currentPosition != null) {
+                              _mapController?.animateCamera(
+                                CameraUpdate.newLatLngZoom(
+                                  LatLng(_currentPosition!.latitude,
+                                      _currentPosition!.longitude),
+                                  16,
+                                ),
+                              );
+                            }
                           },
                           markers: _treasureMarkers,
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: true,
+                          myLocationEnabled: _locationPermissionGranted,
+                          myLocationButtonEnabled: _locationPermissionGranted,
                           zoomControlsEnabled: true,
                         ),
                 ),
@@ -338,7 +389,7 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
                               ),
                             ),
                             Text(
-                                'ID: ${widget.mongoId}',
+                              'ID: ${widget.mongoId}',
                               style: GoogleFonts.lato(
                                 fontSize: 14,
                                 color: Colors.grey,

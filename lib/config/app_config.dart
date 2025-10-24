@@ -2,7 +2,7 @@
 class AppConfig {
   // API Keys
   static const String googleMapsApiKey =
-      'AIzaSyALOWCTbp5-H1gIAFmpllvLjiMALmcPCvA';
+      'AIzaSyBMW8U1mXm15Mqw5t5B6pLSpyCFItD6UOg';
 
   // URLs del backend
   static const String localhostUrl = 'http://localhost:8000';

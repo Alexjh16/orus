@@ -161,7 +161,22 @@ class TreasureService {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        print('TreasureService: Respuesta del servidor: $data');
+        // Extraer el objeto 'stats' de la respuesta
+        if (data['success'] == true && data['stats'] != null) {
+          final stats = data['stats'] as Map<String, dynamic>;
+          print('TreasureService: Estadísticas extraídas: $stats');
+          return stats;
+        } else {
+          print('TreasureService: Respuesta inválida del servidor: $data');
+          return {
+            'treasures_created': 0,
+            'treasures_found': 0,
+            'total_points': 0,
+            'rank': 'Novato'
+          };
+        }
       } else {
         print(
             'TreasureService: Error ${response.statusCode}: ${response.body}');
