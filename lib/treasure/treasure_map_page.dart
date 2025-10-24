@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -42,10 +43,36 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
   // Posición por defecto (ej: Bogotá, Colombia)
   static const LatLng _defaultPosition = LatLng(4.7110, -74.0721);
 
+  // Stream de ubicación para actualizaciones en tiempo real
+  StreamSubscription<Position>? _positionStream;
+
   @override
   void initState() {
     super.initState();
     _initializeMap();
+    _startLocationUpdates();
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startLocationUpdates() async {
+    if (_locationPermissionGranted) {
+      _positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, // Actualizar cada 10 metros
+        ),
+      ).listen((Position position) {
+        setState(() {
+          _currentPosition = position;
+          _updateTreasureMarkers(); // Actualizar marcadores con nueva distancia
+        });
+      });
+    }
   }
 
   Future<void> _initializeMap() async {
@@ -189,17 +216,45 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
     _treasureMarkers.clear();
 
     for (final treasure in _nearbyTreasures) {
+      // Calcular distancia si tenemos ubicación actual
+      String distanceText = '';
+      if (_currentPosition != null) {
+        final distance = treasure.distanceFrom(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+        );
+        if (distance < 1000) {
+          distanceText = '${distance.toStringAsFixed(0)}m';
+        } else {
+          distanceText = '${(distance / 1000).toStringAsFixed(1)}km';
+        }
+      }
+
       final marker = Marker(
         markerId: MarkerId(treasure.id),
         position: LatLng(treasure.latitude, treasure.longitude),
         icon: BitmapDescriptor.defaultMarkerWithHue(
           treasure.isFound
               ? BitmapDescriptor.hueGreen
-              : BitmapDescriptor.hueOrange,
+              : (distanceText.isNotEmpty &&
+                      double.tryParse(distanceText
+                              .replaceAll('m', '')
+                              .replaceAll('km', '')) !=
+                          null &&
+                      double.parse(distanceText
+                              .replaceAll('m', '')
+                              .replaceAll('km', '')) <
+                          50
+                  ? BitmapDescriptor.hueRed // Muy cerca
+                  : BitmapDescriptor.hueOrange),
         ),
         infoWindow: InfoWindow(
           title: treasure.title,
-          snippet: treasure.hint,
+          snippet: treasure.isFound
+              ? '¡Ya encontrado!'
+              : (distanceText.isNotEmpty
+                  ? 'Distancia: $distanceText - ${treasure.hint}'
+                  : treasure.hint),
           onTap: () => _showTreasureDetails(treasure),
         ),
       );
@@ -223,6 +278,139 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
     }
   }
 
+  void _showTreasureHuntGuide() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.explore, color: Color(0xFF4052B6)),
+            const SizedBox(width: 8),
+            Text(
+              'Guía del Caza Tesoros',
+              style: GoogleFonts.lato(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF4052B6),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGuideStep(
+                icon: Icons.location_on,
+                title: '1. Localiza tesoros',
+                description:
+                    'Los tesoros aparecen como marcadores naranjas en el mapa. Los verdes ya fueron encontrados.',
+              ),
+              const SizedBox(height: 12),
+              _buildGuideStep(
+                icon: Icons.directions_walk,
+                title: '2. Acércate al tesoro',
+                description:
+                    'Camina hasta estar a menos de 50 metros del marcador rojo (muy cerca).',
+              ),
+              const SizedBox(height: 12),
+              _buildGuideStep(
+                icon: Icons.lightbulb,
+                title: '3. Lee las pistas',
+                description:
+                    'Cuando estés cerca, aparecerán pistas y la descripción completa del tesoro.',
+              ),
+              const SizedBox(height: 12),
+              _buildGuideStep(
+                icon: Icons.search,
+                title: '4. Reclama el tesoro',
+                description:
+                    'Presiona "¡Reclamar Tesoro!" para ganar puntos y marcarlo como encontrado.',
+              ),
+              const SizedBox(height: 12),
+              _buildGuideStep(
+                icon: Icons.celebration,
+                title: '5. ¡Felicidades!',
+                description:
+                    'Gana puntos por cada tesoro encontrado y mejora tu ranking.',
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Text(
+                  '💡 Tip: Los marcadores cambian de color según tu distancia. ¡Rojo significa que estás muy cerca!',
+                  style: GoogleFonts.lato(
+                    color: Colors.blue[700],
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('¡Entendido!'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideStep({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4052B6).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF4052B6),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.lato(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: GoogleFonts.lato(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showTreasureDetails(Treasure treasure) {
     showDialog(
       context: context,
@@ -232,7 +420,10 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
         onTreasureClaimed: _onTreasureClaimed,
         currentUserId: widget.mongoId, // Pasar ID real del usuario
       ),
-    );
+    ).then((_) {
+      // Recargar tesoros después de cerrar el dialog (por si se reclamó uno)
+      _loadNearbyTreasures();
+    });
   }
 
   void _onTreasureClaimed(Treasure treasure) {
@@ -284,6 +475,11 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
         backgroundColor: const Color(0xFF4052B6),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _showTreasureHuntGuide,
+            tooltip: 'Guía del Caza Tesoros',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _showCreateTreasureDialog,

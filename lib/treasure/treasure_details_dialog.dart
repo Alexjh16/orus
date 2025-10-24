@@ -92,34 +92,75 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
         );
 
         widget.onTreasureClaimed(claimedTreasure);
-        Navigator.of(context).pop();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('¡Tesoro encontrado! +${widget.treasure.points} puntos'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Cerrar el dialog después de un breve delay para mostrar la animación
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+
+        // Mostrar mensaje de celebración con animación
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.celebration, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '🎉 ¡Tesoro encontrado! +${widget.treasure.points} puntos ganados',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error al reclamar el tesoro'),
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Error al reclamar el tesoro. Inténtalo de nuevo.'),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Error de conexión: $e'),
+              ),
+            ],
+          ),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
-      setState(() {
-        _isClaiming = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isClaiming = false;
+        });
+      }
     }
   }
 
@@ -394,6 +435,88 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
                   ),
                 ),
               ] else if (isVeryClose) ...[
+                // Información de distancia y pistas adicionales
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on,
+                              color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            '¡Estás muy cerca!',
+                            style: GoogleFonts.lato(
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Distancia: ${distance.toStringAsFixed(1)} metros',
+                        style: GoogleFonts.lato(
+                          color: Colors.blue[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (widget.treasure.hint.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pista: ${widget.treasure.hint}',
+                          style: GoogleFonts.lato(
+                            color: Colors.blue[800],
+                            fontStyle: FontStyle.italic,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      if (widget.treasure.clues.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pistas adicionales:',
+                          style: GoogleFonts.lato(
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ...widget.treasure.clues.map((clue) => Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 8, bottom: 2),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• ',
+                                      style: TextStyle(color: Colors.blue)),
+                                  Expanded(
+                                    child: Text(
+                                      clue,
+                                      style: GoogleFonts.lato(
+                                        color: Colors.blue[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                      ],
+                    ],
+                  ),
+                ),
+
                 // Botón para reclamar tesoro
                 SizedBox(
                   width: double.infinity,
@@ -405,6 +528,7 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 4,
                     ),
                     child: _isClaiming
                         ? const SizedBox(
@@ -418,13 +542,14 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search),
+                              const Icon(Icons.search, color: Colors.white),
                               const SizedBox(width: 8),
                               Text(
-                                '¡Reclamar Tesoro!',
+                                '¡Reclamar Tesoro! (+${widget.treasure.points} pts)',
                                 style: GoogleFonts.lato(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -432,7 +557,7 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
                   ),
                 ),
               ] else ...[
-                // Mensaje para acercarse más
+                // Mensaje para acercarse más con pista de distancia
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -440,13 +565,38 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.orange[200]!),
                   ),
-                  child: Text(
-                    'Acércate más para ver pistas adicionales y reclamar el tesoro.',
-                    style: GoogleFonts.lato(
-                      color: Colors.orange[700],
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.directions_walk,
+                              color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.treasure.getDistanceHint(
+                                widget.currentPosition!.latitude,
+                                widget.currentPosition!.longitude,
+                              ),
+                              style: GoogleFonts.lato(
+                                color: Colors.orange[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Distancia actual: ${distance.toStringAsFixed(1)} metros',
+                        style: GoogleFonts.lato(
+                          color: Colors.orange[600],
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
               ],
