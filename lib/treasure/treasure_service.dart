@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../models/treasure_model.dart';
@@ -50,7 +51,7 @@ class TreasureService {
     required String creatorName,
     required String title,
     required String description,
-    String? imageUrl,
+    File? imageFile, // Por ahora no se usa, pero mantenemos la firma
     required double latitude,
     required double longitude,
     required String hint,
@@ -62,6 +63,7 @@ class TreasureService {
       final url = Uri.parse('$_baseUrl/api/treasures/create/');
       print('TreasureService: Creando tesoro en $url');
 
+      // Por ahora usamos JSON simple, después implementaremos multipart para imágenes
       final response = await http
           .post(
             url,
@@ -78,9 +80,8 @@ class TreasureService {
                   latitude
                 ] // [lng, lat] como espera MongoDB
               },
-              'image_url': imageUrl,
-              'latitude': latitude
-                  .toString(), // Convertir a string como espera el backend
+              'image_url': null, // Por ahora null hasta implementar subida
+              'latitude': latitude.toString(),
               'longitude': longitude.toString(),
               'hint': hint,
               'difficulty': difficulty,
@@ -90,35 +91,41 @@ class TreasureService {
           )
           .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode == 201) {
+      print('TreasureService: Status code: ${response.statusCode}');
+      print('TreasureService: Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         print('TreasureService: Respuesta de creación: $data');
 
-        // El backend devuelve {"success": true, "message": "..."} pero no el tesoro
-        // Necesitamos crear el tesoro localmente con los datos enviados
-        final createdTreasure = Treasure(
-          id: 'temp_${DateTime.now().millisecondsSinceEpoch}', // ID temporal hasta que el backend lo devuelva
-          creatorId: creatorId,
-          creatorName: creatorName,
-          title: title,
-          description: description,
-          imageUrl: imageUrl,
-          latitude: latitude,
-          longitude: longitude,
-          hint: hint,
-          difficulty: difficulty,
-          clues: clues,
-          createdAt: DateTime.now(),
-          points: points,
-        );
+        // El backend devuelve {"success": true, "message": "Tesoros creado"}
+        if (data['success'] == true) {
+          // Crear el tesoro localmente con los datos enviados
+          final createdTreasure = Treasure(
+            id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+            creatorId: creatorId,
+            creatorName: creatorName,
+            title: title,
+            description: description,
+            imageUrl: null, // Por ahora null
+            latitude: latitude,
+            longitude: longitude,
+            hint: hint,
+            difficulty: difficulty,
+            clues: clues,
+            createdAt: DateTime.now(),
+            points: points,
+          );
 
-        print('TreasureService: Tesoro creado exitosamente');
-        return createdTreasure;
+          print('TreasureService: Tesoro creado exitosamente');
+          return createdTreasure;
+        } else {
+          throw Exception('El backend reportó un error: ${data['message']}');
+        }
       } else {
         print(
             'TreasureService: Error ${response.statusCode}: ${response.body}');
-        throw Exception(
-            'Error al crear tesoro: ${response.statusCode} - ${response.body}');
+        throw Exception('Error del servidor: ${response.statusCode}');
       }
     } catch (e) {
       print('TreasureService: Error en createTreasure: $e');

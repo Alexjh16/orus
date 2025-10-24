@@ -85,7 +85,7 @@ class _CreateTreasureDialogState extends State<CreateTreasureDialog> {
         creatorName: widget.creatorName,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        imageUrl: null, // TODO: Implementar subida de imagen
+        imageFile: _selectedImage, // Pasar el archivo de imagen seleccionado
         latitude: widget.currentPosition.latitude,
         longitude: widget.currentPosition.longitude,
         hint: _hintController.text.trim(),

@@ -258,7 +258,7 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
       context: context,
       builder: (context) => CreateTreasureDialog(
         currentPosition: _currentPosition!,
-        creatorId: widget.name, // Temporal
+        creatorId: widget.mongoId, // Usar ID real de MongoDB
         creatorName: '${widget.name} ${widget.lastName}',
         onTreasureCreated: _onTreasureCreated,
       ),
