@@ -1,18 +1,18 @@
-# 🎮 Orus - Treasure Hunt App
+# Orus - Treasure Hunt App
 
 Una aplicación Flutter de caza de tesoros desarrollada por Alexander, que combina mapas interactivos, GPS y un sistema de puntos para crear una experiencia de juego única.
 
-## 📋 Descripción del Proyecto
+## Descripción del Proyecto
 
 **Orus** es una aplicación móvil multiplataforma que permite a los usuarios:
-- 🗺️ **Explorar mapas** con Google Maps integrado
-- 🏆 **Crear tesoros** en ubicaciones específicas
-- 🔍 **Buscar tesoros** ocultos cerca de su ubicación
-- 🎯 **Reclamar tesoros** cuando están a menos de 50 metros
-- 📊 **Ganar puntos** y subir de rango
-- 📱 **Disfrutar** de una experiencia gamificada completa
+- **Explorar mapas** con Google Maps integrado
+- **Crear tesoros** en ubicaciones específicas
+- **Buscar tesoros** ocultos cerca de su ubicación
+- **Reclamar tesoros** cuando están a menos de 50 metros
+- **Ganar puntos** y subir de rango
+- **Disfrutar** de una experiencia gamificada completa
 
-### 🎯 Características Principales
+### Características Principales
 
 - **Sistema de Ubicación GPS** en tiempo real
 - **Mapas Interactivos** con marcadores dinámicos
@@ -22,7 +22,7 @@ Una aplicación Flutter de caza de tesoros desarrollada por Alexander, que combi
 - **Estadísticas de Usuario** detalladas
 - **Interfaz Moderna** con Material Design 3
 
-## �️ Arquitectura del Proyecto
+## Arquitectura del Proyecto
 
 ### Frontend (Flutter)
 - **Framework**: Flutter 3.5.3+
@@ -36,7 +36,7 @@ Una aplicación Flutter de caza de tesoros desarrollada por Alexander, que combi
 - **Autenticación**: Sistema de usuarios de Django
 - **API**: RESTful con endpoints JSON
 
-## 📦 Dependencias Principales
+## Dependencias Principales
 
 ### Flutter Dependencies
 ```yaml
@@ -59,7 +59,7 @@ dependencies:
 - django-cors-headers (para CORS)
 - GeoJSON para consultas geoespaciales
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 ### Prerrequisitos
 - Flutter SDK 3.5.3+
@@ -161,7 +161,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-## 📡 API Endpoints (Backend Django)
+## API Endpoints (Backend Django)
 
 ### Tesoros (`/api/treasures/`)
 
@@ -254,7 +254,7 @@ Obtiene estadísticas de un usuario.
 }
 ```
 
-## 🎮 Funcionalidades de la App
+## Funcionalidades de la App
 
 ### 1. Sistema de Autenticación
 - Login con credenciales
@@ -287,7 +287,7 @@ Obtiene estadísticas de un usuario.
 - Diferentes rangos según puntuación
 - Estadísticas detalladas del usuario
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 orus/
@@ -315,7 +315,7 @@ orus/
 └── README.md                # Esta documentación
 ```
 
-## 🛠️ Desarrollo y Testing
+## Desarrollo y Testing
 
 ### Ejecutar Tests
 ```bash
@@ -338,7 +338,7 @@ flutter format lib/
 python manage.py improved_seeder --total=30
 ```
 
-## 🔧 Configuración de Desarrollo
+## Configuración de Desarrollo
 
 ### Variables de Entorno
 Crear archivo `.env` en el directorio del backend:
@@ -358,7 +358,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 ```
 
-## 📊 Sistema de Rankings
+## Sistema de Rankings
 
 | Puntos | Rango |
 |--------|-------|
@@ -368,7 +368,7 @@ CORS_ALLOWED_ORIGINS = [
 | 300-499 | Maestro |
 | 500+ | Leyenda |
 
-## 🎯 Próximas Funcionalidades
+## Próximas Funcionalidades
 
 - [ ] Subida de imágenes para tesoros
 - [ ] Sistema de amigos y equipos
@@ -377,7 +377,7 @@ CORS_ALLOWED_ORIGINS = [
 - [ ] Eventos especiales
 - [ ] Integración con redes sociales
 
-## 🤝 Contribución
+## Contribución
 
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -385,15 +385,15 @@ CORS_ALLOWED_ORIGINS = [
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
 
-## 👨‍💻 Autor
+## Autor
 
 **Alexander** - *Desarrollo completo*
 
-## 🙏 Agradecimientos
+##  Agradecimientos
 
 - Flutter por el framework increíble
 - Google Maps por la API de mapas
