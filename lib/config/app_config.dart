@@ -1,8 +1,7 @@
 // Configuración de la aplicación
 class AppConfig {
   // API Keys
-  static const String googleMapsApiKey =
-      'AIzaSyBMW8U1mXm15Mqw5t5B6pLSpyCFItD6UOg';
+  static const String googleMapsApiKey = 'AIzaSyBMW8U1mXm15Mqw5t5B6pLSpyCFItD6UOg';
 
   // URLs del backend
   static const String localhostUrl = 'http://localhost:8000';
