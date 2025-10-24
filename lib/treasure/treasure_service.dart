@@ -59,7 +59,7 @@ class TreasureService {
     required int points,
   }) async {
     try {
-      final url = Uri.parse('$_baseUrl/api/treasures/');
+      final url = Uri.parse('$_baseUrl/api/treasures/create/');
       print('TreasureService: Creando tesoro en $url');
 
       final response = await http
@@ -71,9 +71,17 @@ class TreasureService {
               'creator_name': creatorName,
               'title': title,
               'description': description,
+              'location': {
+                'type': 'Point',
+                'coordinates': [
+                  longitude,
+                  latitude
+                ] // [lng, lat] como espera MongoDB
+              },
               'image_url': imageUrl,
-              'latitude': latitude,
-              'longitude': longitude,
+              'latitude': latitude
+                  .toString(), // Convertir a string como espera el backend
+              'longitude': longitude.toString(),
               'hint': hint,
               'difficulty': difficulty,
               'clues': clues,
@@ -84,12 +92,33 @@ class TreasureService {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
+        print('TreasureService: Respuesta de creación: $data');
+
+        // El backend devuelve {"success": true, "message": "..."} pero no el tesoro
+        // Necesitamos crear el tesoro localmente con los datos enviados
+        final createdTreasure = Treasure(
+          id: 'temp_${DateTime.now().millisecondsSinceEpoch}', // ID temporal hasta que el backend lo devuelva
+          creatorId: creatorId,
+          creatorName: creatorName,
+          title: title,
+          description: description,
+          imageUrl: imageUrl,
+          latitude: latitude,
+          longitude: longitude,
+          hint: hint,
+          difficulty: difficulty,
+          clues: clues,
+          createdAt: DateTime.now(),
+          points: points,
+        );
+
         print('TreasureService: Tesoro creado exitosamente');
-        return Treasure.fromJson(data);
+        return createdTreasure;
       } else {
         print(
             'TreasureService: Error ${response.statusCode}: ${response.body}');
-        throw Exception('Error al crear tesoro');
+        throw Exception(
+            'Error al crear tesoro: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('TreasureService: Error en createTreasure: $e');

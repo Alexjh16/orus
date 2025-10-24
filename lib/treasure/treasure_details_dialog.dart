@@ -8,12 +8,14 @@ class TreasureDetailsDialog extends StatefulWidget {
   final Treasure treasure;
   final Position? currentPosition;
   final Function(Treasure) onTreasureClaimed;
+  final String currentUserId; // Agregar ID del usuario actual
 
   const TreasureDetailsDialog({
     super.key,
     required this.treasure,
     required this.currentPosition,
     required this.onTreasureClaimed,
+    required this.currentUserId, // Requerir ID del usuario
   });
 
   @override
@@ -66,7 +68,7 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
     try {
       final success = await _treasureService.claimTreasure(
         widget.treasure.id,
-        'current_user_id', // TODO: Obtener ID real del usuario
+        widget.currentUserId, // Usar ID real del usuario
       );
 
       if (success) {
@@ -85,7 +87,7 @@ class _TreasureDetailsDialogState extends State<TreasureDetailsDialog> {
           createdAt: widget.treasure.createdAt,
           points: widget.treasure.points,
           isFound: true,
-          foundBy: 'current_user_id', // TODO: Obtener ID real
+          foundBy: widget.currentUserId, // Usar ID real del usuario
           foundAt: DateTime.now(),
         );
 

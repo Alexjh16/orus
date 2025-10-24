@@ -230,6 +230,7 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
         treasure: treasure,
         currentPosition: _currentPosition,
         onTreasureClaimed: _onTreasureClaimed,
+        currentUserId: widget.mongoId, // Pasar ID real del usuario
       ),
     );
   }
