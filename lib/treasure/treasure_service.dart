@@ -1,20 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 import '../models/treasure_model.dart';
 
 class TreasureService {
   // URLs para diferentes plataformas
   static const String localhostUrl = 'http://localhost:8000';
   static const String localNetworkUrl = 'http://192.168.92.178:8000';
+  //ahora la api backend esta en https://expresate-backend-2024.fly.dev
+  static const String productionUrl = 'https://expresate-backend-2024.fly.dev';
 
   // Elegir URL según la plataforma
   String get _baseUrl {
-    if (kIsWeb) {
-      return localhostUrl;
-    }
-    return localNetworkUrl;
+    // Usar producción para todas las plataformas
+    return productionUrl;
   }
 
   // Obtener tesoros cercanos a una ubicación

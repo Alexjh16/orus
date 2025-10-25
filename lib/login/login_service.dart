@@ -1,21 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // Para detectar plataforma
 import 'login_model.dart';
 
 class LoginService {
   // URLs para diferentes plataformas
   static const String localhostUrl = 'http://localhost:8000';
   static const String localNetworkUrl = 'http://192.168.92.178:8000';
+  //ahora la api backend esta en https://expresate-backend-2024.fly.dev
+  static const String productionUrl = 'https://expresate-backend-2024.fly.dev';
 
   // Elegir URL según la plataforma
   String get _baseUrl {
-    // En web, usar localhost (se ejecuta en el navegador de la PC)
-    if (kIsWeb) {
-      return localhostUrl;
-    }
-    // En móvil/desktop, usar IP de red local
-    return localNetworkUrl;
+    // Usar producción para todas las plataformas
+    return productionUrl;
   }
 
   // Método para realizar el login

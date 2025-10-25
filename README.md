@@ -151,6 +151,8 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://192.168.92.178:8000",  # Para desarrollo móvil
+    "https://expresate-backend-2024.fly.dev",
+    "http://localhost:3000"
 ]
 ```
 

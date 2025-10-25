@@ -6,6 +6,8 @@ class AppConfig {
   // URLs del backend
   static const String localhostUrl = 'http://localhost:8000';
   static const String localNetworkUrl = 'http://192.168.92.178:8000';
+  //ahora la api backend esta en https://expresate-backend-2024.fly.dev
+  static const String productionUrl = 'https://expresate-backend-2024.fly.dev';
 
   // Configuración del mapa
   static const double defaultMapZoom = 16.0;
