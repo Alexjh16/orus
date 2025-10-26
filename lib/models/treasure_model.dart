@@ -48,7 +48,7 @@ class Treasure {
       latitude: double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
       longitude: double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
       hint: json['hint'] ?? '',
-      difficulty: json['difficulty'] ?? 1,
+      difficulty: int.tryParse(json['difficulty']?.toString() ?? '1') ?? 1,
       clues: List<String>.from(json['clues'] ?? []),
       isFound: json['is_found'] ?? false,
       foundBy: json['found_by'],

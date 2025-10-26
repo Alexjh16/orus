@@ -236,17 +236,7 @@ class _TreasureMapPageState extends State<TreasureMapPage> {
         icon: BitmapDescriptor.defaultMarkerWithHue(
           treasure.isFound
               ? BitmapDescriptor.hueGreen
-              : (distanceText.isNotEmpty &&
-                      double.tryParse(distanceText
-                              .replaceAll('m', '')
-                              .replaceAll('km', '')) !=
-                          null &&
-                      double.parse(distanceText
-                              .replaceAll('m', '')
-                              .replaceAll('km', '')) <
-                          50
-                  ? BitmapDescriptor.hueRed // Muy cerca
-                  : BitmapDescriptor.hueOrange),
+              : BitmapDescriptor.hueOrange,
         ),
         infoWindow: InfoWindow(
           title: treasure.title,
